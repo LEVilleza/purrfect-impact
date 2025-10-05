@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Purrfect  Impact</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+        color: #00ff6a;
+        text-shadow: 0 0 2px rgba(0,255,120,0.6), 0 0 6px rgba(0,255,120,0.35);
+        background: #000;
+      }
+      /* 8-bit green text theme (exclude left panel by default) */
+      html, body, .visual-novel-container, .approach-dialog, .game-timer, .game-feedback {
+        font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+      }
+      .visual-novel-container, .approach-dialog, .game-timer, .game-feedback,
+      .option-button, .approach-option, .game-feedback, .game-timer * {
+        color: #00ff6a;
+        text-shadow: 0 0 2px rgba(0,255,120,0.6), 0 0 6px rgba(0,255,120,0.35);
+      }
+      /* Left panel defaults: revert to system font and normal color */
+      .ui, .ui * {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        color: #e6eef7;
+        text-shadow: none;
+      }
+      /* Keep inputs readable with system font */
+      .ui input[type="number"], .ui select, .ui input[type="checkbox"] {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      }
+      /* Panel title in green pixelated font */
+      .ui-header h2 {
+        font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+        color: #00ff6a;
+        text-shadow: 0 0 2px rgba(0,255,120,0.6), 0 0 6px rgba(0,255,120,0.35);
+      }
+      /* Metric labels and values in green pixelated font */
+      .metrics .metric-card .label,
+      .metrics .metric-card .value {
+        font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+        color: #00ff6a;
+        text-shadow: 0 0 2px rgba(0,255,120,0.6), 0 0 6px rgba(0,255,120,0.35);
+      }
+      .ui {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        width: 320px;
+        min-width: 220px;
+        max-width: min(50vw, 640px);
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+        background: rgba(10, 14, 23, 0.72);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px;
+        padding: 12px 12px 4px 12px;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+        z-index: 1000;
+      }
+      /* Hide scrollbars but keep scrolling */
+      .ui,
+      .ui-content {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+      }
+      .ui::-webkit-scrollbar,
+      .ui-content::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+        background: transparent;
+      }
+      .ui h2 {
+        margin: 4px 0 8px 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .ui .row {
+        display: grid;
+        grid-template-columns: 1fr 80px;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      /* Compact layout when panel is narrow */
+      .ui.compact .row {
+        grid-template-columns: 1fr; /* stack label above input */
+      }
+      .ui.compact .small {
+        grid-template-columns: 1fr; /* stack small grid items */
+      }
+      .ui.compact .metrics-grid {
+        grid-template-columns: 1fr; /* single column metrics */
+      }
+      .ui label {
+        font-size: 12px;
+        opacity: 0.9;
+      }
+      .ui input[type="range"], .ui input[type="number"], .ui select {
+        width: 100%;
+        background: #000;
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 6px;
+        padding: 6px 8px;
+        box-sizing: border-box;
+      }
+      /* Dropdown list appearance */
+      .ui select option {
+        background: #000;
+        color: #fff;
+      }
+      .ui .small {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .ui .metrics {
+        margin-top: 10px;
+      }
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .metric-card {
+        background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        padding: 10px;
+      }
+      .metric-card .label {
+        font-size: 11px;
+        letter-spacing: 0.3px;
+        opacity: 0.8;
+        margin-bottom: 4px;
+      }
+      .metric-card .value {
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+      /* Smaller units beside metric values */
+      .metrics .metric-card .value .unit {
+        font-size: 12px;
+        opacity: 0.8;
+        margin-left: 4px;
+        vertical-align: baseline;
+      }
+      .metric-accent-energy .value { color: #ffd28a; }
+      .metric-accent-crater .value { color: #a3d8ff; }
+      .metric-accent-dv .value { color: #9cf1c7; }
+      .metric-accent-outcome .value { color: #ffb3a3; }
+      .ui button {
+        display: inline-block;
+        width: 100%;
+        margin-top: 6px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: linear-gradient(180deg, rgba(46,120,220,0.9), rgba(28,88,188,0.9));
+        color: #fff;
+        cursor: pointer;
+      }
+      /* Align panel action buttons with overall UI styles */
+      #playBtn, #resetBtn {
+        display: inline-block;
+        width: 100%;
+        margin-top: 8px;
+        padding: 10px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.14);
+        color: #e6eef7;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      /* Primary action style for Play Approach */
+      #playBtn {
+        background: linear-gradient(180deg, rgba(46,120,220,0.95), rgba(28,88,188,0.95));
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      }
+      #playBtn:hover {
+        background: linear-gradient(180deg, rgba(66,140,240,0.98), rgba(38,98,198,0.98));
+        border-color: rgba(255,255,255,0.22);
+      }
+      #playBtn:active {
+        transform: translateY(1px);
+      }
+      /* Subtle/destructive style for Reset Earth */
+      #resetBtn {
+        background: linear-gradient(180deg, rgba(60,65,80,0.9), rgba(40,45,60,0.9));
+        color: #e6eef7;
+      }
+      #resetBtn:hover {
+        background: linear-gradient(180deg, rgba(255,100,100,0.22), rgba(255,100,100,0.16));
+        border-color: rgba(255,100,100,0.35);
+        color: #ffd6d6;
+      }
+      #resetBtn:active {
+        transform: translateY(1px);
+      }
+      .ui .note {
+        opacity: 0.8;
+        font-size: 11px;
+        margin-top: 6px;
+      }
+      .ui-header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 10px;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+        background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        position: sticky; /* keep visible when scrolling panel */
+        top: 0;
+        z-index: 5;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+      }
+      .ui-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-align: center;
+        width: 100%;
+      }
+      .toggle-btn {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: #e6eef7;
+        border-radius: 4px;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+      .toggle-btn:hover {
+        background: rgba(255,255,255,0.2);
+        border-color: rgba(255,255,255,0.3);
+      }
+      .outside-toggle {
+        position: fixed;
+        z-index: 1100;
+      }
+      .ui-content {
+        transition: all 0.3s ease;
+        /* Allow native dropdowns to render outside without being clipped */
+        overflow: visible;
+      }
+      .ui.collapsed .ui-content {
+        max-height: 0;
+        opacity: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      .ui.collapsed {
+        width: 200px;
+        padding: 12px;
+        max-height: 60px;
+      }
+      /* Hide resizer when collapsed */
+      .ui.collapsed .ui-resizer {
+        display: none;
+        pointer-events: none;
+      }
+      .ui.collapsed .ui-header {
+        margin-bottom: 0;
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .ui-content {
+        max-height: calc(100vh - 100px);
+        /* Use the parent .ui for scrolling; keep visible here to prevent clipping */
+        overflow-y: visible;
+      }
+
+      /* Resizer handle for horizontal resizing only (right edge strip) */
+      .ui-resizer {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 8px;
+        cursor: ew-resize;
+        background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+        border-top-right-radius: 8px;
+        border-bottom-right-radius: 8px;
+        opacity: 0.5;
+        touch-action: none;
+      }
+      .ui-resizer:hover { opacity: 0.9; }
+      /* During resize, avoid accidental text selection */
+      .ui.resizing, .ui.resizing * {
+        user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+      }
+
+      /* Make panel content non-selectable by default, preserve selection for inputs */
+      .ui, .ui * { 
+        user-select: none; 
+        -webkit-user-select: none; 
+        -ms-user-select: none; 
+      }
+      .ui input, .ui textarea, .ui select { 
+        user-select: text; 
+        -webkit-user-select: text; 
+        -ms-user-select: text; 
+      }
+      
+      /* Play Button Styles */
+      .play-button {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        height: 48px;
+        padding: 0 20px;
+        border-radius: 10px;
+        background: rgba(10, 14, 23, 0.72);
+        border: 1px solid rgba(255,255,255,0.14);
+        color: #00ff6a;
+        font-size: 16px;
+        font-weight: 800;
+        font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+        text-shadow: 0 0 2px rgba(0,255,120,0.6), 0 0 6px rgba(0,255,120,0.35);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        transition: all 0.2s ease;
+        z-index: 2000;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+      }
+      
+      .play-button:hover {
+        transform: translateY(-1px);
+        background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05));
+        border-color: rgba(255,255,255,0.22);
+        box-shadow: 0 8px 22px rgba(0,0,0,0.3);
+        text-shadow: 0 0 3px rgba(0,255,120,0.85), 0 0 8px rgba(0,255,120,0.55);
+      }
+      
+      .play-button.playing {
+        background: linear-gradient(180deg, rgba(0,255,120,0.15), rgba(0,255,120,0.08));
+        border-color: rgba(0,255,120,0.35);
+        animation: pulse 1.5s infinite;
+      }
+      
+      .play-button.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+      
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+      }
+      
+      /* Visual Novel UI Styles */
+      .visual-novel-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent; /* no background blur overlay */
+        display: none;
+        z-index: 3000;
+        /* no backdrop blur */
+      }
+      
+      .visual-novel-container {
+        position: fixed;
+        top: 20px; /* place at top */
+        left: 50%;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 900px;
+        background: rgba(0, 0, 0, 0.9); /* match bottom dialog */
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 18px 20px;
+        z-index: 3500; /* above scene */
+        /* no backdrop blur */
+        box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+      }
+      
+      .meteor-info {
+        background: transparent; /* inherit container style */
+        padding: 0;
+        margin: 0;
+        border: none;
+      }
+      
+      .meteor-info h3 {
+        color: #fff; /* match dialog */
+        margin: 0 0 12px 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      
+      .meteor-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+      }
+      
+      .stat-item {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      .stat-label {
+        font-size: 12px;
+        opacity: 0.8;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      
+      .stat-value {
+        font-size: 18px;
+        font-weight: bold;
+        color: #fff;
+      }
+      
+      .question-box {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      .question-text {
+        font-size: 20px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        color: #fff;
+      }
+      
+      .options-container {
+        display: grid;
+        gap: 15px;
+      }
+      
+      .option-button {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 15px 20px;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: left;
+        font-size: 16px;
+        line-height: 1.4;
+      }
+      
+      .option-button:hover {
+        background: rgba(255, 107, 107, 0.2);
+        border-color: #ff6b6b;
+        transform: translateX(10px);
+      }
+      
+      .option-button.selected {
+        background: rgba(255, 107, 107, 0.3);
+        border-color: #ff6b6b;
+        box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+      }
+      
+      .close-button {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        transition: all 0.3s ease;
+      }
+      
+      .close-button:hover {
+        background: rgba(255, 107, 107, 0.3);
+        border-color: #ff6b6b;
+      }
+      
+      /* Game Timer Styles */
+      .game-timer {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 0, 0, 0.9);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-size: 18px;
+        font-weight: bold;
+        z-index: 2500;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+        animation: timerPulse 1s infinite;
+      }
+      
+      .game-timer.warning {
+        background: rgba(255, 165, 0, 0.9);
+        animation: timerWarning 0.5s infinite;
+      }
+      
+      .game-timer.critical {
+        background: rgba(255, 0, 0, 0.9);
+        animation: timerCritical 0.3s infinite;
+      }
+      
+      @keyframes timerPulse {
+        0%, 100% { transform: translateX(-50%) scale(1); }
+        50% { transform: translateX(-50%) scale(1.05); }
+      }
+      
+      @keyframes timerWarning {
+        0%, 100% { transform: translateX(-50%) scale(1); }
+        50% { transform: translateX(-50%) scale(1.1); }
+      }
+      
+      @keyframes timerCritical {
+        0%, 100% { transform: translateX(-50%) scale(1); }
+        50% { transform: translateX(-50%) scale(1.15); }
+      }
+      
+      /* Game Feedback Styles */
+      .game-feedback {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 40px 60px;
+        border-radius: 20px;
+        font-size: 48px;
+        font-weight: bold;
+        z-index: 3000;
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 3px solid;
+        text-align: center;
+        animation: feedbackAppear 0.5s ease-out;
+      }
+      
+      .game-feedback.success {
+        color: #00ff88;
+        border-color: #00ff88;
+        box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+      }
+      
+      .game-feedback.failure {
+        color: #ff4444;
+        border-color: #ff4444;
+        box-shadow: 0 0 30px rgba(255, 68, 68, 0.5);
+      }
+
+      .game-feedback.failure .feedbackText {
+        color: #ff4444;
+        border-color: #ff4444;
+        box-shadow: 0 0 30px rgba(255, 68, 68, 0.5);
+      }
+      
+      @keyframes feedbackAppear {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.5);
+        }
+        100% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+      
+      /* Disabled Input Styles */
+      .ui input:disabled,
+      .ui select:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+      
+      /* Game Overlay */
+      .game-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 1500;
+        pointer-events: none;
+      }
+      
+      /* New Explosion Effects */
+      .explosion-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1500;
+      }
+      
+      .explosion-ring {
+        position: absolute;
+        border: 3px solid #ff6b6b;
+        border-radius: 50%;
+        opacity: 0;
+        animation: explosionRing 2s ease-out forwards;
+      }
+      
+      @keyframes explosionRing {
+        0% {
+          width: 0;
+          height: 0;
+          opacity: 1;
+          transform: translate(-50%, -50%);
+        }
+        100% {
+          width: 800px;
+          height: 800px;
+          opacity: 0;
+          transform: translate(-50%, -50%);
+        }
+      }
+
+
+      /* Approach Dialog (bottom) */
+      .approach-dialog {
+        position: fixed;
+        left: 50%;
+        bottom: 20px;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 900px;
+        background: rgba(0, 0, 0, 0.9);
+        color: #fff;
+        border: 2px solid rgba(255,255,255,0.15);
+        border-radius: 12px;
+        padding: 18px 20px;
+        z-index: 3500;
+        display: none;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+      }
+      .approach-dialog .approach-question {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #00ff6a;
+      }
+      .approach-dialog .approach-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .approach-dialog .approach-option {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: #fff;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.2s ease;
+        font-size: 14px;
+      }
+      .approach-dialog .approach-option:hover {
+        background: rgba(255,255,255,0.15);
+        border-color: rgba(255,255,255,0.35);
+      }
+      .approach-dialog .approach-option.selected {
+        outline: 2px solid #ff6b6b;
+        box-shadow: 0 0 0 3px rgba(255,107,107,0.35) inset;
+      }
+      .feedback-close {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.25);
+        color: #fff;
+        border-radius: 6px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      
+      /* Visual Novel: green title/question, no green shadow on options */
+      .visual-novel-container #meteorName,
+      .visual-novel-container .question-text {
+        color: #00ff6a;
+        text-shadow: 0 0 2px rgba(0,255,120,0.6), 0 0 6px rgba(0,255,120,0.35);
+      }
+      .visual-novel-container .option-button {
+        text-shadow: none;
+      }
+      /* Hide the close (×) button in the game overlay */
+      .visual-novel-container .close-button {
+        display: none !important;
+      }
+    </style>
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "https://cdn.jsdelivr.net/npm/three@0.161/build/three.module.js",
+          "jsm/": "https://cdn.jsdelivr.net/npm/three@0.161/examples/jsm/"
+        }
+			}
+		</script>
+    <!-- 8-bit pixel font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="ui" id="ui">
+      <div class="ui-header">
+        <h2>Purrfect Impact</h2>
+      </div>
+      <div class="ui-content" id="uiContent">
+      <div class="row" style="grid-template-columns: 1fr; margin-bottom: 4px;">
+        <label style="opacity:0.8; font-weight: 600; font-size: 14px;">Meteor Selection</label>
+      </div>
+      <div class="row">
+        <label for="meteorSelect">Choose Meteor Type</label>
+        <select id="meteorSelect">
+          <option value="custom">Custom</option>
+          <option value="">Loading asteroids...</option>
+        </select>
+      </div>
+      <div class="row" id="retryRow" style="display: none;">
+        <button id="retryNASA" style="width: 100%; margin-top: 4px; padding: 6px; font-size: 11px; background: rgba(255,100,100,0.2); border-color: rgba(255,100,100,0.4); color: #ff6666;">🔄 Retry NASA API</button>
+        <div style="font-size: 10px; opacity: 0.7; margin-top: 2px; text-align: center;">
+          Rate limited. Get free API key at api.nasa.gov
+        </div>
+      </div>
+      <div class="row" style="grid-template-columns: 1fr; margin-top: 4px;">
+        <div style="opacity:0.8; font-size: 11px; padding: 4px 8px; background: rgba(255,255,255,0.05); border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+          <span id="meteorDescription">User-defined parameters</span>
+        </div>
+      </div>
+      <div class="row" style="grid-template-columns: 1fr; margin-top: 6px;">
+        <label style="opacity:0.8; font-weight: 600; font-size: 14px;">Asteroid Parameters</label>
+      </div>
+      <div class="row">
+        <label for="diameterKm">Asteroid diameter (km)</label>
+        <input id="diameterKm" type="number" min="0.001" max="100" step="0.001" value="0.3" />
+      </div>
+      <div class="row">
+        <label for="density">Density (kg/m³)</label>
+        <input id="density" type="number" min="100" max="20000" step="10" value="3000" />
+      </div>
+      <div class="row">
+        <label for="velocity">Impact velocity (km/s)</label>
+        <input id="velocity" type="number" min="1" max="100" step="0.1" value="17" />
+      </div>
+      <div class="small">
+        <div class="row">
+          <label for="latitude">Latitude (°)</label>
+          <input id="latitude" type="number" min="-90" max="90" step="0.1" value="0" />
+        </div>
+        <div class="row">
+          <label for="longitude">Longitude (°)</label>
+          <input id="longitude" type="number" min="-180" max="180" step="0.1" value="0" />
+        </div>
+      </div>
+      <div class="row" style="grid-template-columns: 1fr; margin-top: 6px;">
+        <label style="opacity:0.8; font-weight: 600; font-size: 14px;">Impact Parameters</label>
+      </div>
+      <div class="row">
+        <label for="impactAngle">Impact angle (° from horizontal)</label>
+        <input id="impactAngle" type="number" min="1" max="89" step="1" value="45" />
+      </div>
+      <div class="row" style="grid-template-columns: 1fr; margin-top: 6px;">
+        <label style="opacity:0.8; font-weight: 600; font-size: 14px;">Wave Visualization</label>
+      </div>
+      <div class="row">
+        <label for="showWaves">Show Wave Arrows</label>
+        <input id="showWaves" type="checkbox" checked />
+      </div>
+      <div class="row" style="grid-template-columns: 1fr; margin-top: 4px;">
+        <div style="opacity:0.6; font-size: 11px; padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 4px; border: 1px solid rgba(255,255,255,0.08);">
+          Wave arrows: 16 arrows, 500km length (fixed)
+        </div>
+      </div>
+      <div class="row" style="grid-template-columns: 1fr; margin-top: 6px;">
+        <label style="opacity:0.8; font-weight: 600; font-size: 14px;">Mitigation (Deflection)</label>
+      </div>
+      <div class="row">
+        <label for="deltaV">Deflection Δv (m/s)</label>
+        <input id="deltaV" type="number" min="0" max="10000" step="10" value="0" />
+      </div>
+      <div class="small">
+        <div class="row">
+          <label for="leadTimeDays">Lead time (days)</label>
+          <input id="leadTimeDays" type="number" min="1" max="10000" step="1" value="180" />
+        </div>
+        <div class="row">
+          <label for="bearingDeg">Deflection bearing (°)</label>
+          <input id="bearingDeg" type="number" min="0" max="359" step="1" value="90" />
+        </div>
+      </div>
+      <button id="playBtn">Play Approach</button>
+      <button id="resetBtn">Reset Earth</button>
+      <div class="metrics" id="metrics">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="label">Mass</div>
+            <div class="value"><span id="massOut">-</span><span class="unit"> kg</span></div>
+          </div>
+          <div class="metric-card metric-accent-energy">
+            <div class="label">Impact Energy</div>
+            <div class="value"><span id="energyOut">-</span><span class="unit"> J</span></div>
+            <div style="opacity:.8; font-size:11px; margin-top:2px;">= <span id="tntOut">-</span> Mt TNT</div>
+          </div>
+          <div class="metric-card metric-accent-crater">
+            <div class="label">Crater Diameter</div>
+            <div class="value"><span id="craterOut">-</span><span class="unit"> km</span></div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Crater Depth</div>
+            <div class="value"><span id="craterDepthOut">-</span><span class="unit"> km</span></div>
+          </div>
+          <div class="metric-card metric-accent-dv">
+            <div class="label">Deflection Shift</div>
+            <div class="value"><span id="deflectShiftOut">-</span><span class="unit"> km</span></div>
+          </div>
+          <div class="metric-card metric-accent-outcome" style="grid-column: span 2;">
+            <div class="label">Outcome</div>
+            <div class="value"><span id="missStatusOut">-</span></div>
+            <div style="opacity:.8; font-size:11px; margin-top:2px;">Required Δv for ~7000 km: <span id="dvReqOut">-</span> m/s</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 2; margin-top: 8px;">
+            <div class="label">Impact Location</div>
+            <div class="value" style="font-size: 14px;"><span id="impactLocationOut">-</span></div>
+            <div style="opacity:.8; font-size:11px; margin-top:2px;">Wave Type: <span id="waveTypeOut">-</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="note">Values are first-order estimates for education; real outcomes depend on many factors.</div>
+      </div>
+      <div class="ui-resizer" id="uiResizer" title="Resize panel"></div>
+    </div>
+    <div id="overlayFlash" style="position:fixed; inset:0; background: radial-gradient(circle at center, rgba(255,240,200,0.65), rgba(255,120,0,0.12) 40%, rgba(0,0,0,0) 70%); opacity:0; pointer-events:none; transition: opacity 200ms ease;"></div>
+    
+    <!-- Play Button -->
+    <button id="playButton" class="play-button" title="Start Meteor Impact Scenario">Start <span aria-hidden="true">▶</span></button>
+
+    <!-- Outside UI Collapse Toggle -->
+    <button id="toggleUI" class="toggle-btn outside-toggle" title="Collapse UI">−</button>
+    
+    <!-- Game Timer -->
+    <div id="gameTimer" class="game-timer" style="display: none;">
+      <span id="timerText">15</span> seconds remaining
+    </div>
+    
+    <!-- Game Feedback -->
+    <div id="gameFeedback" class="game-feedback" style="display: none;">
+      <button id="feedbackClose" class="feedback-close" style="display:none;">Close</button>
+      <div id="feedbackText">SAVED EARTH!</div>
+    </div>
+    
+    <!-- Game Overlay -->
+    <div id="gameOverlay" class="game-overlay" style="display: none;"></div>
+    
+    <!-- Visual Novel Overlay -->
+    <div id="visualNovelOverlay" class="visual-novel-overlay">
+      <div class="visual-novel-container">
+        <button id="closeVisualNovel" class="close-button">×</button>
+        
+        <div id="meteorInfo" class="meteor-info" style="display: none;">
+          <h3 id="meteorName">Meteor Information</h3>
+          <div class="meteor-stats">
+            <div class="stat-item">
+              <div class="stat-label">Diameter</div>
+              <div class="stat-value" id="meteorDiameter">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Density</div>
+              <div class="stat-value" id="meteorDensity">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Velocity</div>
+              <div class="stat-value" id="meteorVelocity">-</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Hazard Level</div>
+              <div class="stat-value" id="meteorHazard">-</div>
+            </div>
+          </div>
+        </div>
+        
+        <div id="questionBox" class="question-box" style="display: none;">
+          <div class="question-text" id="questionText">
+            How would you mitigate or reduce the chances of this meteor hitting Earth?
+          </div>
+          <div class="options-container" id="optionsContainer">
+            <!-- Options will be dynamically generated -->
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Explosion Effects Container -->
+    <div id="explosionContainer" class="explosion-container"></div>
+
+    <!-- Approach Dialogue (for Play Approach button) -->
+    <div id="approachDialog" class="approach-dialog">
+      <div class="approach-question">Which one of the options would you choose to mitigate the incoming meteor?</div>
+      <div id="approachOptions" class="approach-options"></div>
+    </div>
+    
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

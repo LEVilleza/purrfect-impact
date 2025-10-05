@@ -1,0 +1,13 @@
+{
+  "name": "Impactor-2025 (sample)",
+  "diameter_km": 0.3,
+  "density_kg_m3": 3000,
+  "velocity_km_s": 17,
+  "impact_angle_deg": 45,
+  "close_approach": {
+    "date": "2025-11-02",
+    "miss_distance_km": 120000
+  }
+}
+
+
